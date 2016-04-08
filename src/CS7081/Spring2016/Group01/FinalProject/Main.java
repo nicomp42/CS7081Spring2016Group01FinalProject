@@ -22,12 +22,15 @@ public class Main {
 					           {1,0,0,0},
 					           {1,0,0,0}};
 */
-			double data[][] = { {.02, .92, .02, .02, .02},		/* See http://introcs.cs.princeton.edu/java/16pagerank/ */
+			
+ 			// See http://introcs.cs.princeton.edu/java/16pagerank/ fot this data and the expected result of the Power Method convergence   
+			double data[][] = { {.02, .92, .02, .02, .02},		
 								{.02, .02, .38, .38, .20},
 								{.02, .02, .02, .92, .02},
 								{.92, .02, .02, .02, .02},
 								{.47, .02, .47, .02, .02}				
 			};
+			
 //			double data[][] = {{1,2,1},{6,-1,0},{-1,2,-1}};
 			Jama.Matrix m = new Jama.Matrix(data);
 
@@ -38,6 +41,7 @@ public class Main {
 		    }
 	    	move[0][0] = 1;
 		    Matrix moveMatrix = new Matrix(move);
+		    // Power Method. Will converge to the vector of probabilities. 
 			for (int i = 0; i < 20	; i++) {
 				moveMatrix = moveMatrix.times(m);
 				moveMatrix.print(4, 2);		// column width , # digits after decimal
@@ -46,7 +50,6 @@ public class Main {
 		} catch (Exception ex) {
 			System.out.println("main(): " + ex.getLocalizedMessage());
 		}
-		
 	}
 
 	public void Go() throws Exception {
