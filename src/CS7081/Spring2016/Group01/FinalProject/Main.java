@@ -4,6 +4,7 @@ import java.sql.Connection;
 
 import DatabaseUtilities.DatabaseInterface;
 import DatabaseUtilities.Utilities;
+import Jama.Matrix;
 
 public class Main {
 
@@ -11,13 +12,40 @@ public class Main {
 
 		Main myClass = new Main();
 		try {
-			myClass.Go();
-		} catch (Exception ex) {
 			
+			//myClass.Go();
+			
+			// Test JAMA matrix stuff
+//			double data[][] = {{1.,2.,3},{4.,5.,6.},{7.,8.,10.}};
+/*			double data[][] = {{1,0,0,0},
+					           {1,0,0,0},
+					           {1,0,0,0},
+					           {1,0,0,0}};
+*/
+			double data[][] = { {.02, .92, .02, .02, .02},		/* See http://introcs.cs.princeton.edu/java/16pagerank/ */
+								{.02, .02, .38, .38, .20},
+								{.02, .02, .02, .92, .02},
+								{.92, .02, .02, .02, .02},
+								{.47, .02, .47, .02, .02}				
+			};
+//			double data[][] = {{1,2,1},{6,-1,0},{-1,2,-1}};
+			Jama.Matrix m = new Jama.Matrix(data);
+
+			// Power Method for convergence to the probabilities
+			double[][] move = new double[1][data.length]; 
+		    for (int i = 0; i < move.length; i++) {
+		    	move[0][i] = 0; 		//1./move.length;
+		    }
+	    	move[0][0] = 1;
+		    Matrix moveMatrix = new Matrix(move);
+			for (int i = 0; i < 20	; i++) {
+				moveMatrix = moveMatrix.times(m);
+				moveMatrix.print(4, 2);		// column width , # digits after decimal
+			}
+
+		} catch (Exception ex) {
+			System.out.println("main(): " + ex.getLocalizedMessage());
 		}
-	
-		
-		
 		
 	}
 
