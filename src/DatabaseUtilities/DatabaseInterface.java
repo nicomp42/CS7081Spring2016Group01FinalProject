@@ -9,7 +9,7 @@ public class DatabaseInterface {
 	public Connection Connect(String serverName, String user, String password) {
 		Connection con = null;
 		// Load Microsoft JDBC Driver 1.0
-		System.out.println("Callng Class.forName()...");
+		//System.out.println("Callng Class.forName()...");
 		try {
 			//Driver d = (Driver)Class.forName("com.microsoft.jdbc.sqlserver.SQLServerDriver").newInstance();
    			Driver d = (Driver)Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver").newInstance();
@@ -24,14 +24,14 @@ public class DatabaseInterface {
 			e.printStackTrace();
 		}
 		//Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-		System.out.println("Class.forName() completed");
+		//System.out.println("Class.forName() completed");
 		try {
 			// Obtaining a connection to SQL Server
 			con = DriverManager.getConnection("jdbc:sqlserver://"+serverName + ";"
 			+ "user=" + user + ";password=" + password );
 //			con = DriverManager.getConnection("jdbc:sqlserver://Win2008Server;"
 //					+ "user=JavaDude;password=JavaDude01");
-			System.out.println("DriverManager.getConnection() completed");
+			//System.out.println("DriverManager.getConnection() completed");
 
 		} catch (SQLException e) {
 			System.err.println("SQLException: " + e.getMessage());
