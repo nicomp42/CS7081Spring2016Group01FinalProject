@@ -22,22 +22,57 @@ public class Main {
 			//myClass.Go();
 			//myClass.testPageRankPowerMethod();
 			
-			HashMap<String, Integer> itemHash = myClass.loadItemHashTable();
+			HashMap<Integer,Integer> itemHash = myClass.loadItemHashTable();
 			System.out.println(itemHash.size() + " items to be processed.");
-			Set<String> enumKey = itemHash.keySet();
-			for (String item : enumKey) {
-			    int itemID = itemHash.get(item);
-			    //System.out.println("Item = " + item + ", " + "ItemID = " + itemID);
-			}			
-			HashMap<Integer, String> clientHash = myClass.loadClientHashTable();
+			Set<Integer> enumKey = itemHash.keySet();
+			//for (Integer itemID : enumKey) {
+			//    int rowIdx = itemHash.get(itemID);
+			//    System.out.println("Item = " + item + ", " + "ItemID = " + itemID);
+			//}			
+			HashMap<Integer, Integer> clientHash = myClass.loadClientHashTable();
 			System.out.println(clientHash.size() + " clients to be processed.");
 			
+			// We need a matrix. Rows are Items, columns are Clients
+			int columnCount = clientHash.size();
+			int rowCount = itemHash.size();
+			double myData[][] = new double[rowCount][columnCount];
+			// Now we populate the matrix. The ordering will mirror our hash tables. 
+			int recordsProcessed = myClass.loadMatrix(myData, itemHash, clientHash);
+			System.out.println(recordsProcessed + " records procesessed into data matrix");
 			
 		} catch (Exception ex) {
 			System.out.println("main(): " + ex.getLocalizedMessage());
 		}
 	}
 
+	private int loadMatrix(double myData[][], HashMap<Integer,Integer> itemHash, HashMap<Integer,Integer> clientHash) {
+		Connection con = null;
+		int recordsProcessed = 0;
+		try {
+			con = db.Connect("il-server-001.uccc.uc.edu\\mssqlserver2012", "7081FinalProjectLogin", "P@ssword");
+			System.out.println("loadItemHashTable(): Connected to DB");
+			Statement stmt = con.createStatement();
+			String sql = getQuery();
+			ResultSet rs = stmt.executeQuery(sql);
+			int clientID = 0, itemID = 0, countOfItem = 0, rowIdx = 0, columnIdx = 0;
+			while (rs.next()) {
+				clientID = rs.getInt("myClientNameID");
+				itemID = rs.getInt("myItemID");
+				countOfItem = rs.getInt("CountOfItem");
+				// Look up the row and column corresponding to this client and item
+				rowIdx = itemHash.get(itemID);
+				columnIdx = clientHash.get(clientID);
+				myData[rowIdx][columnIdx] = countOfItem;
+				recordsProcessed++;
+			}
+		} catch (Exception ex) {
+			System.out.println("loadMatrix(): " + ex.getLocalizedMessage());
+		} finally {
+			try { con.close(); } catch(Exception ex) {}
+		}
+		return recordsProcessed;
+	}
+	
 	public void Go() throws Exception {
 		try {
 
@@ -84,8 +119,8 @@ public class Main {
 		try {
 			Jama.Matrix m = new Jama.Matrix(data);
 	
-			// Power Method for convergence to the rankings
-			double[][] move = new double[data.length][1]; 
+			// Power Method for convergence to the rankings.
+			double[][] move = new double[data.length][1];	// This is a vector: 1 column, n rows. It will eventually contain the rankings of the rows.
 		    for (int i = 0; i < move.length; i++) {
 		    	move[i][0] = 0; 		//1./move.length;
 		    }
@@ -105,23 +140,29 @@ public class Main {
 	
 	/**
 	 * Load the items from the aggregate view into a hash map so we can build the matrix
-	 * @return The hash map of items
+	 * @return The hash map of items. The key is the ItemID from the database, the value is the row index in our matrix
 	 */
-	private HashMap<String, Integer> loadItemHashTable() {
+	private HashMap<Integer,Integer> loadItemHashTable() {
 		Connection con = null;
-		HashMap<String, Integer> itemHash = new HashMap<String, Integer>();		// <key, value> are the parameters
+		HashMap<Integer,Integer> itemHash = new HashMap<Integer,Integer>();		// <key, value> are the parameters
 		try {
 			con = db.Connect("il-server-001.uccc.uc.edu\\mssqlserver2012", "7081FinalProjectLogin", "P@ssword");
 			System.out.println("loadItemHashTable(): Connected to DB");
-			String item;
+			//String item;
 			int itemID;
 			Statement stmt = con.createStatement();
-			String sql = "SELECT * FROM vAggregateSalesByCustomerAndItem";
+			String sql = getQuery();
 			ResultSet rs = stmt.executeQuery(sql);
+			int rowIdx = 0;
 			while (rs.next()) {		
-				item = rs.getString("myItem");
+				//item = rs.getString("myItem");
 				itemID = rs.getInt("myItemID");
-				itemHash.put(item,  itemID);
+				// If the itemID is not in the hash map, add it now
+				Object foo = itemHash.get(itemID);
+				if (foo == null) {
+					itemHash.put(itemID, rowIdx);
+					rowIdx++;
+				}
 			}
 		} catch (Exception ex) {
 			System.out.println("loadItemHashTable(): " + ex.getLocalizedMessage());
@@ -132,23 +173,29 @@ public class Main {
 	}
 	/**
 	 * Load the items from the aggregate view into a hash map so we can build the matrix
-	 * @return The hash map of items
+	 * @return The hash map of client IDs and indices into the data matrix.  The key is the clientID from the database, the value is the column index in our matrix
 	 */
-	private HashMap<Integer, String> loadClientHashTable() {
+	private HashMap<Integer, Integer> loadClientHashTable() {
 		Connection con = null;
-		HashMap<Integer, String> clientHash = new HashMap<Integer, String>();		// <key, value> are the parameters
+		HashMap<Integer, Integer> clientHash = new HashMap<Integer, Integer>();		// <key, value> are the parameters
 		try {
 			con = db.Connect("il-server-001.uccc.uc.edu\\mssqlserver2012", "7081FinalProjectLogin", "P@ssword");
 			System.out.println("loadItemHashTable(): Connected to DB");
-			String name;
+//			String name;
 			int clientNameID;
 			Statement stmt = con.createStatement();
-			String sql = "SELECT * FROM vAggregateSalesByCustomerAndItem";
+			String sql = getQuery();
 			ResultSet rs = stmt.executeQuery(sql);
+			int columnIdx = 0;
 			while (rs.next()) {		
-				name = rs.getString("name");
-				clientNameID = rs.getInt("clientNameID");
-				clientHash.put(clientNameID, name);
+				//name = rs.getString("name");
+				clientNameID = rs.getInt("myClientNameID");
+				// If the clientNameID is not in the hash map, add it now
+				Object foo = clientHash.get(clientNameID);
+				if (foo == null) {
+					clientHash.put(clientNameID, columnIdx);
+					columnIdx++;
+				}
 			}
 		} catch (Exception ex) {
 			System.out.println("loadClientHashTable(): " + ex.getLocalizedMessage());
@@ -158,5 +205,7 @@ public class Main {
 		return clientHash;
 	}
 	
-	
+	private static String getQuery() {
+		return "SELECT * FROM vAggregateSalesByCustomerAndItem" + " ORDER BY myClientNameID, myItemID";
+	}
 }
