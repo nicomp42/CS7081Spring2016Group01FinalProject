@@ -76,8 +76,14 @@ public class Main {
 				//rankVector.print(6, 4);		// column width , # digits after decimal
 				rankVector = sales.times(rankVector);			// columns in A must equal rows in B
 			}
-			rankVector.print(6, 4);		// column width , # digits after decimal
-
+			System.out.println("Ranking of Items using Client Votes:");
+			System.out.println("Item ID \t Rank");
+			enumKey = itemHash.keySet();
+			for (Integer itemID : enumKey) {
+			    int rowIdx = itemHash.get(itemID);
+			    //System.out.println("Row Index = " + rowIdx + ", " + "ItemID = " + itemID);
+				System.out.printf("%d \t\t %4.3f\n", itemID, rankVector.get(rowIdx, 0));		// column width , # digits after decimal
+			}
 		} catch (Exception ex) {
 			System.out.println("main(): " + ex.getLocalizedMessage());
 		}
