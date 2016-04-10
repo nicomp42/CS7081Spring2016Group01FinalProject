@@ -21,7 +21,7 @@ public class Main {
 
 			//myClass.Go();
 			//myClass.testPageRankPowerMethod();
-			
+
 			HashMap<Integer,Integer> itemHash = myClass.loadItemHashTable();
 			System.out.println(itemHash.size() + " items to be processed.");
 			HashMap<Integer, Integer> clientHash = myClass.loadClientHashTable();
@@ -30,7 +30,7 @@ public class Main {
 			// We need a matrix. Rows are Items, columns are Clients
 			int clientCount = clientHash.size();
 			int itemCount = itemHash.size();
-			
+
 			int dimension = itemCount + clientCount;
 			double m[][] = myClass.buildRandomWalkMatrix(clientCount, itemCount);
 			Matrix myMatrix = new Matrix(m);
