@@ -91,12 +91,12 @@ public class Main {
 				for (int row = 0; row < itemCount; row++) { m[row][col] = 0; }
 				for (int row = itemCount; row < dimension; row++) {
 					rs.next();
-					//int countOfItemID = rs.getInt("CountOfItemID");
-					//int totalSalesForThisItemID = rs.getInt("TotalSalesForThisItemID");
-					//int clientNameID = rs.getInt("ClientNameID");
-					//int itemID = rs.getInt("ItemID");
-//					m[row][col] = ((double)countOfItemID) / totalSalesForThisItemID;			// This is another way to calculate the arbitrary weights for items back to clients
-					m[row][col] = (double)1 / clientCount;				// This weights each client probability equally. 
+					int qtyOfItemID = rs.getInt("QtyOfItemID");
+					int SumOfItemsPurchased = rs.getInt("SumOfItemsPurchased");
+					int clientNameID = rs.getInt("ClientNameID");
+					int itemID = rs.getInt("ItemID");
+					m[row][col] = ((double)qtyOfItemID) / SumOfItemsPurchased;			// This is another way to calculate the arbitrary weights for items back to clients
+//					m[row][col] = (double)1 / clientCount;				// This weights each client probability equally. 
 				}
 			}
 			con.close();
