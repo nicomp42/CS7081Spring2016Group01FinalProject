@@ -18,11 +18,9 @@ public class Main {
 
 		Main myClass = new Main();
 		try {
-			
+
 			//myClass.Go();
 			//myClass.testPageRankPowerMethod();
-			
-
 			
 			HashMap<Integer,Integer> itemHash = myClass.loadItemHashTable();
 			System.out.println(itemHash.size() + " items to be processed.");
@@ -37,16 +35,22 @@ public class Main {
 			double m[][] = myClass.buildRandomWalkMatrix(clientCount, itemCount);
 			Matrix myMatrix = new Matrix(m);
 			myMatrix.print(5,3);
-			// Now we need a vector that will iterate over our matrix
+			// Now we need a ranking vector that will iterate over our matrix
 			double[][] rank = new double[dimension][1];	// This is a vector: 1 column, n rows. It will eventually contain the rankings of the rows.
 		    for (int i = 0; i < dimension; i++) {rank[i][0] = 1./dimension;}
+//		    for (int i = 0; i < dimension; i++) {rank[i][0] = 0;} rank[0][0] = 1.;		// Doesn't work
+//		    for (int i = 0; i < dimension; i++) {rank[i][0] = 0;} rank[0][0] = .5;	rank[1][0] = .5;	// Doesn't work
 		    Matrix rankVector = new Matrix(rank);
+		    
+			System.out.println("Initial state of Ranking vector:");
+			rankVector.print(8, 5);
+		    
 		    // Power Method. Will converge to the vector of rankings. 
 			for (int i = 0; i < 21; i++) {							// # of iterations is arbitrary. 21 seems sufficient
 				//rankVector.print(6, 4);							// column width , # digits after decimal
 				rankVector = myMatrix.times(rankVector);			// columns in A must equal rows in B
 			}
-			System.out.println("Ranking:");
+			System.out.println("Final state of Ranking vector:");
 			rankVector.print(8, 5);
 			
 			// Just for fun, sum the rankings to see if we get 1.
@@ -57,59 +61,6 @@ public class Main {
 			System.out.printf("\n Sum of rankings = %8.6f", sum);
 			
 			
-			/*
-			double salesData[][] = new double[itemCount][clientCount];
-			// Now we populate the matrix. The ordering will mirror our hash tables. 
-			int recordsProcessed = myClass.loadMatrix(salesData, itemHash, clientHash);
-			System.out.println(recordsProcessed + " records procesessed into data matrix");
-//			Debugging
-			Set<Integer> enumKey = itemHash.keySet();
-			for (Integer itemID : enumKey) {
-			    int rowIdx = itemHash.get(itemID);
-			    System.out.println("Row Index = " + rowIdx + ", " + "ItemID = " + itemID);
-			}			
-			enumKey = clientHash.keySet();
-			for (Integer clientID : enumKey) {
-			    int columnIdx = clientHash.get(clientID);
-			    System.out.println("Column Index = " + columnIdx + ", " + "ClientID = " + clientID);
-			}
-			
-			// Now we need a vector that will iterate over our matrix
-			double[][] rank = new double[dimension][1];	// This is a vector: 1 column, n rows. It will eventually contain the rankings of the rows.
-		    for (int i = 0; i < dimension; i++) {rank[i][0] = 1./dimension;}
-		    Matrix rankVector = new Matrix(rank);
-		    // The sales data must be normalized: each column must add up to one or zero
-		    int saleCountByClient = 0;
-		    for (int i = 0; i < clientCount; i++) {
-			    saleCountByClient = 0;
-		    	for (int j = 0; j < itemCount; j++) {
-				    saleCountByClient += salesData[j][i];
-		    	}
-		    	// Normalize the column
-		    	if (saleCountByClient > 0) {
-			    	for (int k = 0; k < itemCount; k++) {
-					    salesData[k][i] /= saleCountByClient;
-			    	}		    		
-		    	}
-		    }
-		    // Put the data array into a Matrix object
-		    Matrix sales = new Matrix(salesData);
-		    sales.print(5,4);
-			rankVector.print(6, 4);		// column width , # digits after decimal
-		    // Power Method. Will converge to the vector of rankings. 
-			for (int i = 0; i < 11	; i++) {
-				//rankVector.print(6, 4);		// column width , # digits after decimal
-				rankVector = sales.times(rankVector);			// columns in A must equal rows in B
-			}
-			System.out.println("Ranking of Items using Client Votes:");
-			System.out.println("Item ID \t Rank");
-			enumKey = itemHash.keySet();
-			for (Integer itemID : enumKey) {
-			    int rowIdx = itemHash.get(itemID);
-			    //System.out.println("Row Index = " + rowIdx + ", " + "ItemID = " + itemID);
-				System.out.printf("%d \t\t %4.3f\n", itemID, rankVector.get(rowIdx, 0));		// column width , # digits after decimal
-			}
-			*/
 		} catch (Exception ex) {
 			System.out.println("main(): " + ex.getLocalizedMessage());
 		}
@@ -131,11 +82,12 @@ public class Main {
 				for (int row = 0; row < itemCount; row++) { m[row][col] = 0; }
 				for (int row = itemCount; row < dimension; row++) {
 					rs.next();
-					int countOfItemID = rs.getInt("CountOfItemID");
-					int totalSalesForThisItemID = rs.getInt("TotalSalesForThisItemID");
-					int clientNameID = rs.getInt("ClientNameID");
-					int itemID = rs.getInt("ItemID");
-					m[row][col] = ((double)countOfItemID) / totalSalesForThisItemID;
+					//int countOfItemID = rs.getInt("CountOfItemID");
+					//int totalSalesForThisItemID = rs.getInt("TotalSalesForThisItemID");
+					//int clientNameID = rs.getInt("ClientNameID");
+					//int itemID = rs.getInt("ItemID");
+//					m[row][col] = ((double)countOfItemID) / totalSalesForThisItemID;			// This is another way to calculate the arbitrary weights for items back to clients
+					m[row][col] = (double)1 / clientCount;				// This weights each client probability equally. 
 				}
 			}
 			con.close();
@@ -147,7 +99,7 @@ public class Main {
 			for (int col = clientCount; col < dimension; col++) {
 				for (int row = 0; row < itemCount; row++) {
 					rs.next();
-					m[row][col] = ((double)rs.getInt("CountOfItemID")) / rs.getInt("CountOfSaleDetailID");
+					m[row][col] = ((double)rs.getInt("SumOfItem")) / rs.getInt("SumOfItemsPurchased");		// This is another possibility for the arbitrary weights from Items to Clients
 				}
 				for (int row = itemCount; row < dimension; row++) { m[row][col] = 0; }
 			}
@@ -159,7 +111,7 @@ public class Main {
 		return m;
 	}
 	
-	
+	/************************************ Ignore all this code **********************************************************************************/
 	private int loadMatrix(double myData[][], HashMap<Integer,Integer> itemHash, HashMap<Integer,Integer> clientHash) {
 		Connection con = null;
 		int recordsProcessed = 0;
@@ -324,3 +276,58 @@ public class Main {
 		} catch (Exception ex) {System.out.println("Main.Go(): " + ex.getLocalizedMessage());}
 	}
 }
+
+			/*
+			double salesData[][] = new double[itemCount][clientCount];
+			// Now we populate the matrix. The ordering will mirror our hash tables. 
+			int recordsProcessed = myClass.loadMatrix(salesData, itemHash, clientHash);
+			System.out.println(recordsProcessed + " records procesessed into data matrix");
+//			Debugging
+			Set<Integer> enumKey = itemHash.keySet();
+			for (Integer itemID : enumKey) {
+			    int rowIdx = itemHash.get(itemID);
+			    System.out.println("Row Index = " + rowIdx + ", " + "ItemID = " + itemID);
+			}			
+			enumKey = clientHash.keySet();
+			for (Integer clientID : enumKey) {
+			    int columnIdx = clientHash.get(clientID);
+			    System.out.println("Column Index = " + columnIdx + ", " + "ClientID = " + clientID);
+			}
+			
+			// Now we need a vector that will iterate over our matrix
+			double[][] rank = new double[dimension][1];	// This is a vector: 1 column, n rows. It will eventually contain the rankings of the rows.
+		    for (int i = 0; i < dimension; i++) {rank[i][0] = 1./dimension;}
+		    Matrix rankVector = new Matrix(rank);
+		    // The sales data must be normalized: each column must add up to one or zero
+		    int saleCountByClient = 0;
+		    for (int i = 0; i < clientCount; i++) {
+			    saleCountByClient = 0;
+		    	for (int j = 0; j < itemCount; j++) {
+				    saleCountByClient += salesData[j][i];
+		    	}
+		    	// Normalize the column
+		    	if (saleCountByClient > 0) {
+			    	for (int k = 0; k < itemCount; k++) {
+					    salesData[k][i] /= saleCountByClient;
+			    	}		    		
+		    	}
+		    }
+		    // Put the data array into a Matrix object
+		    Matrix sales = new Matrix(salesData);
+		    sales.print(5,4);
+			rankVector.print(6, 4);		// column width , # digits after decimal
+		    // Power Method. Will converge to the vector of rankings. 
+			for (int i = 0; i < 11	; i++) {
+				//rankVector.print(6, 4);		// column width , # digits after decimal
+				rankVector = sales.times(rankVector);			// columns in A must equal rows in B
+			}
+			System.out.println("Ranking of Items using Client Votes:");
+			System.out.println("Item ID \t Rank");
+			enumKey = itemHash.keySet();
+			for (Integer itemID : enumKey) {
+			    int rowIdx = itemHash.get(itemID);
+			    //System.out.println("Row Index = " + rowIdx + ", " + "ItemID = " + itemID);
+				System.out.printf("%d \t\t %4.3f\n", itemID, rankVector.get(rowIdx, 0));		// column width , # digits after decimal
+			}
+			*/
+
