@@ -13,7 +13,7 @@ import Jama.Matrix;
 
 public class Main {
 	private static DatabaseInterface db = new DatabaseInterface();
-
+	private static double dampingFactor = .85;
 	public static void main(String[] args) {
 
 		Main myClass = new Main();
@@ -44,11 +44,20 @@ public class Main {
 		    
 			System.out.println("Initial state of Ranking vector:");
 			rankVector.print(8, 5);
-		    
-		    // Power Method. Will converge to the vector of rankings. 
+			
+			// Create the one matrix and damping matrix 
+			double oneVector[][] = new double[dimension][1];
+			for (int i = 0; i < dimension; i++) {oneVector[i][0] = 1.;} Matrix oneMatrix = new Matrix(oneVector);
+			Matrix dampingMatrix = oneMatrix.times(((1-dampingFactor)/dimension));
+			
+		    // Power Method. Will converge to the vector of rankings.
+			// See https://en.wikipedia.org/wiki/PageRank#Damping_factor
 			for (int i = 0; i < 21; i++) {							// # of iterations is arbitrary. 21 seems sufficient
 				//rankVector.print(6, 4);							// column width , # digits after decimal
 				rankVector = myMatrix.times(rankVector);			// columns in A must equal rows in B
+				rankVector = rankVector.times(dampingFactor);
+				rankVector = rankVector.plus(dampingMatrix);
+				
 			}
 			System.out.println("Final state of Ranking vector:");
 			rankVector.print(8, 5);
