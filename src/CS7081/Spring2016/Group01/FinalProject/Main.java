@@ -30,9 +30,35 @@ public class Main {
 			System.out.println(clientHash.size() + " clients to be processed.");
 			
 			// We need a matrix. Rows are Items, columns are Clients
-			int columnCount = clientHash.size();
-			int rowCount = itemHash.size();
-			double salesData[][] = new double[rowCount][columnCount];
+			int clientCount = clientHash.size();
+			int itemCount = itemHash.size();
+			
+			int dimension = itemCount + clientCount;
+			double m[][] = myClass.buildRandomWalkMatrix(clientCount, itemCount);
+			Matrix myMatrix = new Matrix(m);
+			myMatrix.print(5,3);
+			// Now we need a vector that will iterate over our matrix
+			double[][] rank = new double[dimension][1];	// This is a vector: 1 column, n rows. It will eventually contain the rankings of the rows.
+		    for (int i = 0; i < dimension; i++) {rank[i][0] = 1./dimension;}
+		    Matrix rankVector = new Matrix(rank);
+		    // Power Method. Will converge to the vector of rankings. 
+			for (int i = 0; i < 21; i++) {							// # of iterations is arbitrary. 21 seems sufficient
+				//rankVector.print(6, 4);							// column width , # digits after decimal
+				rankVector = myMatrix.times(rankVector);			// columns in A must equal rows in B
+			}
+			System.out.println("Ranking:");
+			rankVector.print(8, 5);
+			
+			// Just for fun, sum the rankings to see if we get 1.
+			double sum = 0;
+			for (int i = 0; i < dimension; i++) {
+				sum += rankVector.get(itemCount, 0);
+			}
+			System.out.printf("\n Sum of rankings = %8.6f", sum);
+			
+			
+			/*
+			double salesData[][] = new double[itemCount][clientCount];
 			// Now we populate the matrix. The ordering will mirror our hash tables. 
 			int recordsProcessed = myClass.loadMatrix(salesData, itemHash, clientHash);
 			System.out.println(recordsProcessed + " records procesessed into data matrix");
@@ -48,21 +74,20 @@ public class Main {
 			    System.out.println("Column Index = " + columnIdx + ", " + "ClientID = " + clientID);
 			}
 			
-			// Now we need a vector that will iterate into our ranking vector
-			double[][] rank = new double[rowCount][1];	// This is a vector: 1 column, n rows. It will eventually contain the rankings of the rows.
-		    for (int i = 0; i < rowCount; i++) {rank[i][0] = 1./rowCount;}
-	    	//rank[0][0] = 1;
+			// Now we need a vector that will iterate over our matrix
+			double[][] rank = new double[dimension][1];	// This is a vector: 1 column, n rows. It will eventually contain the rankings of the rows.
+		    for (int i = 0; i < dimension; i++) {rank[i][0] = 1./dimension;}
 		    Matrix rankVector = new Matrix(rank);
 		    // The sales data must be normalized: each column must add up to one or zero
 		    int saleCountByClient = 0;
-		    for (int i = 0; i < columnCount; i++) {
+		    for (int i = 0; i < clientCount; i++) {
 			    saleCountByClient = 0;
-		    	for (int j = 0; j < rowCount; j++) {
+		    	for (int j = 0; j < itemCount; j++) {
 				    saleCountByClient += salesData[j][i];
 		    	}
 		    	// Normalize the column
 		    	if (saleCountByClient > 0) {
-			    	for (int k = 0; k < rowCount; k++) {
+			    	for (int k = 0; k < itemCount; k++) {
 					    salesData[k][i] /= saleCountByClient;
 			    	}		    		
 		    	}
@@ -84,11 +109,57 @@ public class Main {
 			    //System.out.println("Row Index = " + rowIdx + ", " + "ItemID = " + itemID);
 				System.out.printf("%d \t\t %4.3f\n", itemID, rankVector.get(rowIdx, 0));		// column width , # digits after decimal
 			}
+			*/
 		} catch (Exception ex) {
 			System.out.println("main(): " + ex.getLocalizedMessage());
 		}
+		
 	}
 
+	private double[][] buildRandomWalkMatrix(int clientCount, int itemCount) {
+		// This only works if every client has purchased every item at least once. It's just easier to process the data in the tables. The ranking algo doesn't change. 
+		int dimension = clientCount + itemCount;
+		double m[][] = new double[dimension][dimension];
+		Connection con = null;
+		try {
+			con = db.Connect("il-server-001.uccc.uc.edu\\mssqlserver2012", "7081FinalProjectLogin", "P@ssword");
+			Statement stmt = con.createStatement();
+			// left side of the matrix -- Items walking to customers
+			String sql = "SELECT * FROM vProbabilityOfItemWalkingToCustomer" + " ORDER BY ItemID, ClientNameID";
+			ResultSet rs = stmt.executeQuery(sql);
+			for (int col = 0; col < clientCount; col++) {
+				for (int row = 0; row < itemCount; row++) { m[row][col] = 0; }
+				for (int row = itemCount; row < dimension; row++) {
+					rs.next();
+					int countOfItemID = rs.getInt("CountOfItemID");
+					int totalSalesForThisItemID = rs.getInt("TotalSalesForThisItemID");
+					int clientNameID = rs.getInt("ClientNameID");
+					int itemID = rs.getInt("ItemID");
+					m[row][col] = ((double)countOfItemID) / totalSalesForThisItemID;
+				}
+			}
+			con.close();
+			con = db.Connect("il-server-001.uccc.uc.edu\\mssqlserver2012", "7081FinalProjectLogin", "P@ssword");
+			// right side of the matrix -- customers walking to items
+			sql = "SELECT * FROM vProbabilityOfCustomerWalkingToItem" + " ORDER BY ClientNameID, ItemID";
+			stmt = con.createStatement();
+			rs = stmt.executeQuery(sql);
+			for (int col = clientCount; col < dimension; col++) {
+				for (int row = 0; row < itemCount; row++) {
+					rs.next();
+					m[row][col] = ((double)rs.getInt("CountOfItemID")) / rs.getInt("CountOfSaleDetailID");
+				}
+				for (int row = itemCount; row < dimension; row++) { m[row][col] = 0; }
+			}
+		
+		} catch (Exception ex) {
+			System.out.println("buildRandomWalkMatrix(): " + ex.getLocalizedMessage());
+		}
+		
+		return m;
+	}
+	
+	
 	private int loadMatrix(double myData[][], HashMap<Integer,Integer> itemHash, HashMap<Integer,Integer> clientHash) {
 		Connection con = null;
 		int recordsProcessed = 0;
