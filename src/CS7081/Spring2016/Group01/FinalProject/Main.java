@@ -52,12 +52,11 @@ public class Main {
 			
 		    // Power Method. Will converge to the vector of rankings.
 			// See https://en.wikipedia.org/wiki/PageRank#Damping_factor
-			for (int i = 0; i < 21; i++) {							// # of iterations is arbitrary. 21 seems sufficient
+			for (int i = 0; i < 99; i++) {							// # of iterations is arbitrary. 21 seems sufficient
 				//rankVector.print(6, 4);							// column width , # digits after decimal
 				rankVector = myMatrix.times(rankVector);			// columns in A must equal rows in B
 				rankVector = rankVector.times(dampingFactor);
 				rankVector = rankVector.plus(dampingMatrix);
-				
 			}
 			System.out.println("Final state of Ranking vector:");
 			rankVector.print(8, 5);
