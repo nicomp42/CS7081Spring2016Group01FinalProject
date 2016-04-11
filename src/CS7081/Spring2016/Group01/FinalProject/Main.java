@@ -1,3 +1,10 @@
+/****************************************************************
+ * CS 7081 Group Project                                        *
+ * Spring, 2016                                                 *
+ * Compute Page Rank                                            *
+ * Christopher Broderick, Rohit Dureja, Akash Mohapatra,        * 
+ * Bill Nicholson, Asrith Singa Reddy.                          *
+ ****************************************************************/
 package CS7081.Spring2016.Group01.FinalProject;
 
 import java.sql.Connection;
@@ -13,7 +20,10 @@ import Jama.Matrix;
 
 public class Main {
 	private static DatabaseInterface db = new DatabaseInterface();
-	private static double dampingFactor = .85;
+	
+	// (1-Damping Factor) is the likelihood that random page will not be chosen from the entire universe of nodes.
+	//.85 is the assumed Google default. Use 1.0 for no damping, 0. for total damping (makes no sense);
+	private static double dampingFactor = .15;		
 	public static void main(String[] args) {
 
 		Main myClass = new Main();
@@ -26,13 +36,15 @@ public class Main {
 			System.out.println(itemHash.size() + " items to be processed.");
 			HashMap<Integer, Integer> clientHash = myClass.loadClientHashTable();
 			System.out.println(clientHash.size() + " clients to be processed.");
-			
+			System.out.println("Damping Factor = " + dampingFactor);
 			// We need a matrix. Rows are Items, columns are Clients
 			int clientCount = clientHash.size();
 			int itemCount = itemHash.size();
 
 			int dimension = itemCount + clientCount;
-			double m[][] = myClass.buildRandomWalkMatrix(clientCount, itemCount);
+//			double m[][] = myClass.buildRandomWalkMatrix(clientCount, itemCount);
+			double m[][] = myClass.buildRandomWalkMatrix_test01();
+			
 			Matrix myMatrix = new Matrix(m);
 			myMatrix.print(5,3);
 			// Now we need a ranking vector that will iterate over our matrix
@@ -52,8 +64,9 @@ public class Main {
 			
 		    // Power Method. Will converge to the vector of rankings.
 			// See https://en.wikipedia.org/wiki/PageRank#Damping_factor
-			for (int i = 0; i < 99; i++) {							// # of iterations is arbitrary. 21 seems sufficient
-				//rankVector.print(6, 4);							// column width , # digits after decimal
+			for (int i = 0; i < 21; i++) {							// # of iterations is arbitrary. 21 seems sufficient
+				System.out.print("iteration " + (i+1) + ":");
+				rankVector.print(6, 4);								// column width , # digits after decimal
 				rankVector = myMatrix.times(rankVector);			// columns in A must equal rows in B
 				rankVector = rankVector.times(dampingFactor);
 				rankVector = rankVector.plus(dampingMatrix);
@@ -74,7 +87,25 @@ public class Main {
 		}
 		
 	}
-
+	
+	/***
+	 * A test case where the transition matrix 
+	 * @return
+	 */
+	private  double[][] buildRandomWalkMatrix_test01() {
+		double[][] myMatrix = { { 0,   0,   0,   0, .25, .25, .25, .25  }, 
+								{ 0,   0,   0,   0, .25, .25, .25, .25  }, 
+								{ 0,   0,   0,   0, .25, .25, .25, .25  }, 
+								{ 0,   0,   0,   0, .25, .25, .25, .25  }, 
+								{ 0,   0,   0,   0,   0,   0,   0,   0  }, 
+								{ 0,   0,   0,   0,   0,   0,   0,   0  }, 
+								{ 0,   0,   0,   0,   0,   0,   0,   0  }, 
+								{ 0,   0,   0,   0,   0,   0,   0,   0  }
+		};
+		return myMatrix;
+	}
+	
+	
 	private double[][] buildRandomWalkMatrix(int clientCount, int itemCount) {
 		// This only works if every client has purchased every item at least once. It's just easier to process the data in the tables. The ranking algo doesn't change. 
 		int dimension = clientCount + itemCount;
