@@ -43,7 +43,8 @@ public class Main {
 
 			int dimension = itemCount + clientCount;
 //			double m[][] = myClass.buildRandomWalkMatrix(clientCount, itemCount);
-			double m[][] = myClass.buildRandomWalkMatrix_test01();
+//			double m[][] = myClass.buildRandomWalkMatrix_test01();
+			double m[][] = myClass.buildRandomWalkMatrix_test02();
 			
 			Matrix myMatrix = new Matrix(m);
 			myMatrix.print(5,3);
@@ -89,8 +90,8 @@ public class Main {
 	}
 	
 	/***
-	 * A test case where the transition matrix 
-	 * @return
+	 * A test case where the transition matrix is normalized across all clients (un-weighted edges) and everything else is zero.
+	 * @return The loaded-up transition matrix
 	 */
 	private  double[][] buildRandomWalkMatrix_test01() {
 		double[][] myMatrix = { { 0,   0,   0,   0, .25, .25, .25, .25  }, 
@@ -101,6 +102,22 @@ public class Main {
 								{ 0,   0,   0,   0,   0,   0,   0,   0  }, 
 								{ 0,   0,   0,   0,   0,   0,   0,   0  }, 
 								{ 0,   0,   0,   0,   0,   0,   0,   0  }
+		};
+		return myMatrix;
+	}
+	/***
+	 * A test case where the transition matrix is weighted from Clients to Items and everything else is zero.
+	 * @return The loaded-up transition matrix
+	 */
+	private  double[][] buildRandomWalkMatrix_test02() {
+		double[][] myMatrix = { { 0,   0,   0,   0,  10./13, .25,  .25, .25  }, 
+								{ 0,   0,   0,   0,   1./13, .25,  .25, .25  }, 
+								{ 0,   0,   0,   0,   1./13, .25,  .25, .25  }, 
+								{ 0,   0,   0,   0,   1./13, .25,  .25, .25  }, 
+								{ 0,   0,   0,   0,       0,   0,    0,   0  }, 
+								{ 0,   0,   0,   0,       0,   0,    0,   0  }, 
+								{ 0,   0,   0,   0,       0,   0,    0,   0  }, 
+								{ 0,   0,   0,   0,       0,   0,    0,   0  }
 		};
 		return myMatrix;
 	}
