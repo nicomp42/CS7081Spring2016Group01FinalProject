@@ -44,7 +44,8 @@ public class Main {
 			int dimension = itemCount + clientCount;
 //			double m[][] = myClass.buildRandomWalkMatrix(clientCount, itemCount);
 //			double m[][] = myClass.buildRandomWalkMatrix_test01();
-			double m[][] = myClass.buildRandomWalkMatrix_test02();
+//			double m[][] = myClass.buildRandomWalkMatrix_test02();
+			double m[][] = myClass.buildRandomWalkMatrix_test03();
 			
 			Matrix myMatrix = new Matrix(m);
 			myMatrix.print(5,3);
@@ -121,8 +122,23 @@ public class Main {
 		};
 		return myMatrix;
 	}
-	
-	
+	/***
+	 * A test case where the transition matrix is weighted from Clients to Items and everything else is zero.
+	 * @return The loaded-up transition matrix
+	 */
+	private  double[][] buildRandomWalkMatrix_test03() {
+		double[][] myMatrix = { { 0,      0,    0,    0,  10./13, .25,  .25, .25  }, 
+								{ 0,      0,    0,    0,   1./13, .25,  .25, .25  }, 
+								{ 0,      0,    0,    0,   1./13, .25,  .25, .25  }, 
+								{ 0,      0,    0,    0,   1./13, .25,  .25, .25  }, 
+								{ 10./12, 2./6, 3./9, 0,       0,   0,    0,   0  }, 
+								{  1./12, 2./6, 0,    4./12,   0,   0,    0,   0  }, 
+								{  1./12, 0,    3./9, 4./12,   0,   0,    0,   0  }, 
+								{ 0,      2./6, 3./9, 4./12,   0,   0,    0,   0  }
+		};
+		return myMatrix;
+	}
+		
 	private double[][] buildRandomWalkMatrix(int clientCount, int itemCount) {
 		// This only works if every client has purchased every item at least once. It's just easier to process the data in the tables. The ranking algo doesn't change. 
 		int dimension = clientCount + itemCount;
