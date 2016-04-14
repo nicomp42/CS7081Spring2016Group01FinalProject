@@ -23,7 +23,8 @@ public class Main {
 	
 	// (1-Damping Factor) is the likelihood that random page will not be chosen from the entire universe of nodes.
 	//.85 is the assumed Google default. Use 1.0 for no damping, 0. for total damping (makes no sense);
-	private static double dampingFactor = .15;		
+	private static double dampingFactor = .15;
+	private static boolean verbose = false;
 	public static void main(String[] args) {
 
 		Main myClass = new Main();
@@ -32,23 +33,25 @@ public class Main {
 			//myClass.Go();
 			//myClass.testPageRankPowerMethod();
 
-			HashMap<Integer,Integer> itemHash = myClass.loadItemHashTable();
-			System.out.println(itemHash.size() + " items to be processed.");
-			HashMap<Integer, Integer> clientHash = myClass.loadClientHashTable();
-			System.out.println(clientHash.size() + " clients to be processed.");
+			//HashMap<Integer,Integer> itemHash = myClass.loadItemHashTable();
+			//System.out.println(itemHash.size() + " items to be processed.");
+			//HashMap<Integer, Integer> clientHash = myClass.loadClientHashTable();
+			//System.out.println(clientHash.size() + " clients to be processed.");
 			System.out.println("Damping Factor = " + dampingFactor);
 			// We need a matrix. Rows are Items, columns are Clients
-			int clientCount = clientHash.size();
-			int itemCount = itemHash.size();
+			int clientCount = myClass.countClientNamesThatBoughtSomething();
+			int itemCount = myClass.countItemsThatWereBought();
+			System.out.println(itemCount + " items to be processed.");
+			System.out.println(clientCount + " clients to be processed.");
 
 			int dimension = itemCount + clientCount;
-//			double m[][] = myClass.buildRandomWalkMatrix(clientCount, itemCount);
+			double m[][] = myClass.buildRandomWalkMatrix(clientCount, itemCount);
 //			double m[][] = myClass.buildRandomWalkMatrix_test01();
 //			double m[][] = myClass.buildRandomWalkMatrix_test02();
-			double m[][] = myClass.buildRandomWalkMatrix_test03();
+//			double m[][] = myClass.buildRandomWalkMatrix_test03();
 			
 			Matrix myMatrix = new Matrix(m);
-			myMatrix.print(5,3);
+			if (verbose) {myMatrix.print(5,3);}
 			// Now we need a ranking vector that will iterate over our matrix
 			double[][] rank = new double[dimension][1];	// This is a vector: 1 column, n rows. It will eventually contain the rankings of the rows.
 		    for (int i = 0; i < dimension; i++) {rank[i][0] = 1./dimension;}
@@ -56,9 +59,7 @@ public class Main {
 //		    for (int i = 0; i < dimension; i++) {rank[i][0] = 0;} rank[0][0] = .5;	rank[1][0] = .5;	// Doesn't work
 		    Matrix rankVector = new Matrix(rank);
 		    
-			System.out.println("Initial state of Ranking vector:");
-			rankVector.print(8, 5);
-			
+		    if (verbose) {System.out.println("Initial state of Ranking vector:"); rankVector.print(8, 5);}
 			// Create the one matrix and damping matrix 
 			double oneVector[][] = new double[dimension][1];
 			for (int i = 0; i < dimension; i++) {oneVector[i][0] = 1.;} Matrix oneMatrix = new Matrix(oneVector);
@@ -67,8 +68,8 @@ public class Main {
 		    // Power Method. Will converge to the vector of rankings.
 			// See https://en.wikipedia.org/wiki/PageRank#Damping_factor
 			for (int i = 0; i < 21; i++) {							// # of iterations is arbitrary. 21 seems sufficient
-				System.out.print("iteration " + (i+1) + ":");
-				rankVector.print(6, 4);								// column width , # digits after decimal
+				//System.out.print("iteration " + (i+1) + ":");
+				//rankVector.print(6, 4);								// column width , # digits after decimal
 				rankVector = myMatrix.times(rankVector);			// columns in A must equal rows in B
 				rankVector = rankVector.times(dampingFactor);
 				rankVector = rankVector.plus(dampingMatrix);
@@ -148,39 +149,75 @@ public class Main {
 			con = db.Connect("il-server-001.uccc.uc.edu\\mssqlserver2012", "7081FinalProjectLogin", "P@ssword");
 			Statement stmt = con.createStatement();
 			// left side of the matrix -- Items walking to customers
-			String sql = "SELECT * FROM vProbabilityOfItemWalkingToCustomer" + " ORDER BY ItemID, ClientNameID";
+			String sql = "SELECT * FROM vLoadTransitionMatrix" + " ORDER BY myItemID, myClientNameID";
 			ResultSet rs = stmt.executeQuery(sql);
 			for (int col = 0; col < clientCount; col++) {
 				for (int row = 0; row < itemCount; row++) { m[row][col] = 0; }
 				for (int row = itemCount; row < dimension; row++) {
+					System.out.println("row = " + row + " col = " + col);
 					rs.next();
-					int qtyOfItemID = rs.getInt("QtyOfItemID");
-					int SumOfItemsPurchased = rs.getInt("SumOfItemsPurchased");
-					int clientNameID = rs.getInt("ClientNameID");
-					int itemID = rs.getInt("ItemID");
-					m[row][col] = ((double)qtyOfItemID) / SumOfItemsPurchased;			// This is another way to calculate the arbitrary weights for items back to clients
-//					m[row][col] = (double)1 / clientCount;				// This weights each client probability equally. 
+					double totalSalePriceByItem = rs.getDouble("totalSalePriceByItem");
+					double SumOfSalePriceOfEachItemByCustomer = rs.getDouble("SumOfSalePriceOfEachItemByCustomer");
+					m[row][col] = ((double)SumOfSalePriceOfEachItemByCustomer) / totalSalePriceByItem;			// This is another way to calculate the arbitrary weights for items back to clients
+//					m[row][col] = (double)1 / clientCount;								// This weights each client probability equally. 
 				}
 			}
 			con.close();
 			con = db.Connect("il-server-001.uccc.uc.edu\\mssqlserver2012", "7081FinalProjectLogin", "P@ssword");
 			// right side of the matrix -- customers walking to items
-			sql = "SELECT * FROM vProbabilityOfCustomerWalkingToItem" + " ORDER BY ClientNameID, ItemID";
+			sql = "SELECT * FROM vLoadTransitionMatrix" + " ORDER BY myClientNameID, myItemID";
 			stmt = con.createStatement();
 			rs = stmt.executeQuery(sql);
 			for (int col = clientCount; col < dimension; col++) {
 				for (int row = 0; row < itemCount; row++) {
 					rs.next();
-					m[row][col] = ((double)rs.getInt("SumOfItem")) / rs.getInt("SumOfItemsPurchased");		// This is another possibility for the arbitrary weights from Items to Clients
+					m[row][col] = ((double)rs.getInt("SumOfEachItemPurchasedByCustomer")) / rs.getInt("QtyPurchasedByItem");		// This is another possibility for the arbitrary weights from Items to Clients
 				}
 				for (int row = itemCount; row < dimension; row++) { m[row][col] = 0; }
 			}
-		
 		} catch (Exception ex) {
 			System.out.println("buildRandomWalkMatrix(): " + ex.getLocalizedMessage());
 		}
 		
 		return m;
+	}
+	private int countClientNamesThatBoughtSomething() {
+		String sql = "SELECT COUNT(ClientNameID) AS ClientNameCount FROM dbo.vClientsThatBoughtSomething";
+		Connection con = null;
+		int clientNameCount = 0;
+		try {
+			con = db.Connect("il-server-001.uccc.uc.edu\\mssqlserver2012", "7081FinalProjectLogin", "P@ssword");
+			//System.out.println("loadItemHashTable(): Connected to DB");
+			//String item;
+			Statement stmt = con.createStatement();
+			ResultSet rs = stmt.executeQuery(sql);
+			rs.next();
+			clientNameCount = rs.getInt("ClientNameCount");
+		} catch (Exception ex) {
+			System.out.println("countClientNamesThatBoughtSomething(): " + ex.getLocalizedMessage());
+		} finally {
+			try {con.close();} catch (Exception ex) {}
+		}
+		return clientNameCount;
+	}
+	private int countItemsThatWereBought() {
+		String sql = "SELECT COUNT(ItemID) AS ItemCount FROM dbo.vItemsThatWereBought";
+		Connection con = null;
+		int itemCount = 0;
+		try {
+			con = db.Connect("il-server-001.uccc.uc.edu\\mssqlserver2012", "7081FinalProjectLogin", "P@ssword");
+			//System.out.println("loadItemHashTable(): Connected to DB");
+			//String item;
+			Statement stmt = con.createStatement();
+			ResultSet rs = stmt.executeQuery(sql);
+			rs.next();
+			itemCount = rs.getInt("itemCount");
+		} catch (Exception ex) {
+			System.out.println("countItemsThatWereBought(): " + ex.getLocalizedMessage());
+		} finally {
+			try {con.close();} catch (Exception ex) {}
+		}
+		return itemCount;
 	}
 	
 	/************************************ Ignore all this code **********************************************************************************/
@@ -213,6 +250,11 @@ public class Main {
 	}
 	
 	
+	private static String getQuery() {
+		
+		return "SELECT * FROM vLoadTransitionMatrix" + " ORDER BY myClientNameID, myItemID";
+//		return "SELECT * FROM vAggregateSalesByCustomerAndItem" + " ORDER BY myClientNameID, myItemID";
+	}
 	/**
 	 * Load the items from the aggregate view into a hash map so we can build the matrix
 	 * @return The hash map of items. The key is the ItemID from the database, the value is the row index in our matrix
@@ -280,9 +322,6 @@ public class Main {
 		return clientHash;
 	}
 	
-	private static String getQuery() {
-		return "SELECT * FROM vAggregateSalesByCustomerAndItem" + " ORDER BY myClientNameID, myItemID";
-	}
 	private void testPageRankPowerMethod() {
 		// Test JAMA matrix stuff
 //		double data[][] = {{1.,2.,3},{4.,5.,6.},{7.,8.,10.}};
