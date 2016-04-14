@@ -38,7 +38,7 @@ public class Main {
 			//HashMap<Integer, Integer> clientHash = myClass.loadClientHashTable();
 			//System.out.println(clientHash.size() + " clients to be processed.");
 			System.out.println("Damping Factor = " + dampingFactor);
-			// We need a matrix. Rows are Items, columns are Clients
+			// We need a transition matrix. Top 1/2 is clients ranking items, bottom 1/2 is items ranking clients
 			int clientCount = myClass.countClientNamesThatBoughtSomething();
 			int itemCount = myClass.countItemsThatWereBought();
 			System.out.println(itemCount + " items to be processed.");
@@ -52,6 +52,8 @@ public class Main {
 			
 			Matrix myMatrix = new Matrix(m);
 			if (verbose) {myMatrix.print(5,3);}
+			myMatrix.print(20,10);
+			myClass.printMatrix(myMatrix, dimension);
 			// Now we need a ranking vector that will iterate over our matrix
 			double[][] rank = new double[dimension][1];	// This is a vector: 1 column, n rows. It will eventually contain the rankings of the rows.
 		    for (int i = 0; i < dimension; i++) {rank[i][0] = 1./dimension;}
@@ -67,15 +69,16 @@ public class Main {
 			
 		    // Power Method. Will converge to the vector of rankings.
 			// See https://en.wikipedia.org/wiki/PageRank#Damping_factor
-			for (int i = 0; i < 21; i++) {							// # of iterations is arbitrary. 21 seems sufficient
-				//System.out.print("iteration " + (i+1) + ":");
+			for (int i = 0; i < 20; i++) {							// # of iterations is arbitrary. 21 seems sufficient
+				System.out.print("iteration " + (i+1) + ":");
 				//rankVector.print(6, 4);								// column width , # digits after decimal
+				//for (int ii = 0; ii < rankVector.getRowDimension(); ii++) { System.out.printf("%f\n", rankVector.get(ii, 0));}
 				rankVector = myMatrix.times(rankVector);			// columns in A must equal rows in B
 				rankVector = rankVector.times(dampingFactor);
 				rankVector = rankVector.plus(dampingMatrix);
 			}
 			System.out.println("Final state of Ranking vector:");
-			rankVector.print(8, 5);
+			for (int i = 0; i < rankVector.getRowDimension(); i++) { System.out.printf("%f\n", rankVector.get(i, 0));}
 			
 			// Just for fun, sum the rankings to see if we get 1.
 			double sum = 0;
@@ -83,12 +86,9 @@ public class Main {
 				sum += rankVector.get(itemCount, 0);
 			}
 			System.out.printf("\n Sum of rankings = %8.6f", sum);
-			
-			
 		} catch (Exception ex) {
 			System.out.println("main(): " + ex.getLocalizedMessage());
 		}
-		
 	}
 	
 	/***
@@ -151,16 +151,30 @@ public class Main {
 			// left side of the matrix -- Items walking to customers
 			String sql = "SELECT * FROM vLoadTransitionMatrix" + " ORDER BY myItemID, myClientNameID";
 			ResultSet rs = stmt.executeQuery(sql);
-			for (int col = 0; col < clientCount; col++) {
-				for (int row = 0; row < itemCount; row++) { m[row][col] = 0; }
-				for (int row = itemCount; row < dimension; row++) {
-					System.out.println("row = " + row + " col = " + col);
+			int counter = 0;
+			int itemID = 0, clientNameID = 0;
+			double totalSalePriceByItem;
+			double SumOfSalePriceOfEachItemByCustomer;
+			double weight;
+			for (int row = 0; row < itemCount; row++) {
+				for (int col = 0; col < itemCount; col++) { m[row][col] = 0; }
+				for (int col = itemCount; col < dimension; col++) {
+					counter ++;
 					rs.next();
-					double totalSalePriceByItem = rs.getDouble("totalSalePriceByItem");
-					double SumOfSalePriceOfEachItemByCustomer = rs.getDouble("SumOfSalePriceOfEachItemByCustomer");
-					m[row][col] = ((double)SumOfSalePriceOfEachItemByCustomer) / totalSalePriceByItem;			// This is another way to calculate the arbitrary weights for items back to clients
+					itemID = rs.getInt("myItemID");
+					clientNameID = rs.getInt("myClientNameID");
+					totalSalePriceByItem = rs.getDouble("totalSalePriceByItem");
+					SumOfSalePriceOfEachItemByCustomer = rs.getDouble("SumOfSalePriceOfEachItemByCustomer");
+					weight = ((double)SumOfSalePriceOfEachItemByCustomer) / totalSalePriceByItem;
+					if (Double.isNaN(weight)){weight = 0;}
+					System.out.println("counter = " + counter + " row = " + row + " col = " + col + " clientNameID = " + clientNameID + " itemID = " + itemID + " weight = " + weight);
+					m[row][col] = weight;			// This is another way to calculate the arbitrary weights for items back to clients
 //					m[row][col] = (double)1 / clientCount;								// This weights each client probability equally. 
 				}
+				//if (counter == 1847) {
+				//	System.out.println("!");
+				//}
+
 			}
 			con.close();
 			con = db.Connect("il-server-001.uccc.uc.edu\\mssqlserver2012", "7081FinalProjectLogin", "P@ssword");
@@ -168,18 +182,30 @@ public class Main {
 			sql = "SELECT * FROM vLoadTransitionMatrix" + " ORDER BY myClientNameID, myItemID";
 			stmt = con.createStatement();
 			rs = stmt.executeQuery(sql);
-			for (int col = clientCount; col < dimension; col++) {
-				for (int row = 0; row < itemCount; row++) {
+			for (int row = itemCount; row < dimension; row++) {
+				for (int col = 0; col < itemCount; col++) {
 					rs.next();
-					m[row][col] = ((double)rs.getInt("SumOfEachItemPurchasedByCustomer")) / rs.getInt("QtyPurchasedByItem");		// This is another possibility for the arbitrary weights from Items to Clients
+					double SumOfEachItemPurchasedByCustomer = rs.getInt("SumOfEachItemPurchasedByCustomer");
+					double QtyPurchasedByItem = rs.getInt("QtyPurchasedByItem");
+					weight = SumOfEachItemPurchasedByCustomer / QtyPurchasedByItem;
+					if (Double.isNaN(weight)){weight = 0;}
+					m[row][col] = weight;		// This is another possibility for the arbitrary weights from Items to Clients
 				}
-				for (int row = itemCount; row < dimension; row++) { m[row][col] = 0; }
+				for (int col = itemCount; col < dimension; col++) { m[row][col] = 0; }
 			}
 		} catch (Exception ex) {
 			System.out.println("buildRandomWalkMatrix(): " + ex.getLocalizedMessage());
 		}
-		
 		return m;
+	}
+
+	private void printMatrix(Matrix m, int dimension) {
+		for (int i = 0; i < dimension; i++) {
+			for (int j = 0; i < dimension; i++) {
+				System.out.printf("%f " , m.get(i, j));
+			}
+			System.out.println();
+		}
 	}
 	private int countClientNamesThatBoughtSomething() {
 		String sql = "SELECT COUNT(ClientNameID) AS ClientNameCount FROM dbo.vClientsThatBoughtSomething";
