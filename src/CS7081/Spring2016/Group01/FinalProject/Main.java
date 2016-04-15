@@ -52,8 +52,8 @@ public class Main {
 			
 			Matrix myMatrix = new Matrix(m);
 			if (verbose) {myMatrix.print(5,3);}
-			myMatrix.print(20,10);
-			myClass.printMatrix(myMatrix, dimension);
+			//myMatrix.print(20,10);
+			//myClass.printMatrix(myMatrix, dimension);
 			// Now we need a ranking vector that will iterate over our matrix
 			double[][] rank = new double[dimension][1];	// This is a vector: 1 column, n rows. It will eventually contain the rankings of the rows.
 		    for (int i = 0; i < dimension; i++) {rank[i][0] = 1./dimension;}
@@ -61,7 +61,7 @@ public class Main {
 //		    for (int i = 0; i < dimension; i++) {rank[i][0] = 0;} rank[0][0] = .5;	rank[1][0] = .5;	// Doesn't work
 		    Matrix rankVector = new Matrix(rank);
 		    
-		    if (verbose) {System.out.println("Initial state of Ranking vector:"); rankVector.print(8, 5);}
+		    //if (verbose) {System.out.println("Initial state of Ranking vector:"); rankVector.print(8, 5);}
 			// Create the one matrix and damping matrix 
 			double oneVector[][] = new double[dimension][1];
 			for (int i = 0; i < dimension; i++) {oneVector[i][0] = 1.;} Matrix oneMatrix = new Matrix(oneVector);
@@ -70,7 +70,7 @@ public class Main {
 		    // Power Method. Will converge to the vector of rankings.
 			// See https://en.wikipedia.org/wiki/PageRank#Damping_factor
 			for (int i = 0; i < 20; i++) {							// # of iterations is arbitrary. 21 seems sufficient
-				System.out.print("iteration " + (i+1) + ":");
+				//System.out.print("iteration " + (i+1) + ":");
 				//rankVector.print(6, 4);								// column width , # digits after decimal
 				//for (int ii = 0; ii < rankVector.getRowDimension(); ii++) { System.out.printf("%f\n", rankVector.get(ii, 0));}
 				rankVector = myMatrix.times(rankVector);			// columns in A must equal rows in B
@@ -80,7 +80,7 @@ public class Main {
 			System.out.println("Final state of Ranking vector:");
 			for (int i = 0; i < rankVector.getRowDimension(); i++) { System.out.printf("%f\n", rankVector.get(i, 0));}
 			
-			// Just for fun, sum the rankings to see if we get 1.
+			// Just for fun, sum the rankings to see if we get 1-damping.
 			double sum = 0;
 			for (int i = 0; i < dimension; i++) {
 				sum += rankVector.get(itemCount, 0);
@@ -167,7 +167,7 @@ public class Main {
 					SumOfSalePriceOfEachItemByCustomer = rs.getDouble("SumOfSalePriceOfEachItemByCustomer");
 					weight = ((double)SumOfSalePriceOfEachItemByCustomer) / totalSalePriceByItem;
 					if (Double.isNaN(weight)){weight = 0;}
-					System.out.println("counter = " + counter + " row = " + row + " col = " + col + " clientNameID = " + clientNameID + " itemID = " + itemID + " weight = " + weight);
+					//System.out.println("counter = " + counter + " row = " + row + " col = " + col + " clientNameID = " + clientNameID + " itemID = " + itemID + " weight = " + weight);
 					m[row][col] = weight;			// This is another way to calculate the arbitrary weights for items back to clients
 //					m[row][col] = (double)1 / clientCount;								// This weights each client probability equally. 
 				}
