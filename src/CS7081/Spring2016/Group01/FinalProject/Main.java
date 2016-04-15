@@ -51,13 +51,21 @@ public class Main {
 //			double m[][] = myClass.buildRandomWalkMatrix_test03();
 			
 			Matrix myMatrix = new Matrix(m);
-			if (verbose) {myMatrix.print(5,3);}
+			if (verbose) {myMatrix.print(10,8);}
+			/*
+			for (int i = itemCount; i < myMatrix.getRowDimension(); i++) {
+				System.out.println();
+				for (int ii = 0; ii < clientCount; ii++) {
+					System.out.printf("%6.5f ", myMatrix.get(i, ii)*10);
+				}
+			}
+			*/
 			//myMatrix.print(20,10);
 			//myClass.printMatrix(myMatrix, dimension);
 			// Now we need a ranking vector that will iterate over our matrix
 			double[][] rank = new double[dimension][1];	// This is a vector: 1 column, n rows. It will eventually contain the rankings of the rows.
 		    for (int i = 0; i < dimension; i++) {rank[i][0] = 1./dimension;}
-//		    for (int i = 0; i < dimension; i++) {rank[i][0] = 0;} rank[0][0] = 1.;		// Doesn't work
+//		    for (int i = 0; i < dimension; i++) {rank[i][0] = 0;} rank[0][0] = 1.;						// Doesn't work
 //		    for (int i = 0; i < dimension; i++) {rank[i][0] = 0;} rank[0][0] = .5;	rank[1][0] = .5;	// Doesn't work
 		    Matrix rankVector = new Matrix(rank);
 		    
